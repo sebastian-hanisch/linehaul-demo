@@ -129,8 +129,10 @@ deckungsgleich mit der vollständigen Neubewertung geprüft
 (9 Depots, maximale Nachfragedichte) bei **1,8 s** statt 7,5 s.
 
 **Ergebnis, nachdem die Suche schnell genug war:** als abschließender Politur-Schritt
-nach der bestehenden Multi-Start-Suche angewendet (nicht auf jeden der elf Startpunkte
-einzeln, sondern nur auf das jeweils beste Endergebnis – hält die Mehrkosten klein).
+nach der bestehenden Multi-Start-Suche angewendet (nicht auf jeden einzelnen Startpunkt -
+"Alles direkt", Grenzkosten-Konstruktion in beide Sortierrichtungen und ein Startpunkt je
+möglichem Hub, je nach Depot-Regler unterschiedlich viele -, sondern nur auf das jeweils
+beste Endergebnis – hält die Mehrkosten klein).
 Über dieselben 20 Testinstanzen sinkt die mittlere Optimalitätslücke von **3,0 % auf
 1,6 %**, die maximale von **9,8 % auf 7,7 %**, 9 von 20 Instanzen verbessert, mehrere
 treffen danach exakt das Optimum. Der bisher hartnäckige Fall (Seed 7, das Default-Preset
@@ -239,17 +241,17 @@ Nutzen, den die einfache feste Zeitschranke bereits abdeckt.
 
 | Datei | Inhalt |
 |---|---|
-| `app.py` | Streamlit-Hauptablauf: Sidebar, Primäransicht, Methodenvergleich, Formulierungs-Expander |
+| `app.py` | Streamlit-Hauptablauf: Presets im Hauptbereich, Sidebar-Einstellungen, Primäransicht, Kipppunkt-Sektion ("Wann lohnt sich Bündelung?"), Methodenvergleich, Formulierungs-Expander |
 | `linehaul_constants.py` | Defaults, Regler-Grenzen, `PRESETS` |
 | `linehaul_presets.py` | `SettingSpec`/`SETTING_SPECS`, Permalink-Logik, Presets, Zufalls-Seed-Button |
 | `linehaul_scenario.py` | Zufällige Depotpositionen und Nachfragematrix |
 | `linehaul_network.py` | Problem-Instanz: Commodities, Kandidatenlinien, Routen (Direkt/via Hub) |
-| `linehaul_heuristics.py` | Alles direkt, Hub-and-Spoke, Greedy-Verbesserung |
+| `linehaul_heuristics.py` | Alles direkt, Hub-and-Spoke, Greedy-Verbesserung (Multi-Start inkl. Grenzkosten-Konstruktion + paarweiser Politur-Schritt) |
 | `linehaul_reference_solver.py` | Exakter MIP-Löser (OR-Tools `pywraplp`, SCIP) |
 | `linehaul_evaluation.py` | Kostenaufschlüsselung, Vergleichstabelle |
 | `linehaul_visualization.py` | Netzwerkkarte, Kostenaufschlüsselungs-Chart (Plotly) |
 | `linehaul_pdf_export.py` | PDF-Netzwerkplan (`fpdf2`) |
-| `linehaul_ui_panel.py` | Wiederverwendbares Panel je Methode |
+| `linehaul_ui_panel.py` | Wiederverwendbares Panel je Methode im Methodenvergleich-Expander |
 | `tests/` | Instanzaufbau, Heuristik-Eigenschaften, MIP-Cross-Check inkl. handgerechneter Kleinstinstanz |
 
 ## Lokal ausführen
