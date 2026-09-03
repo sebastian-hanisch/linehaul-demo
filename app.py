@@ -4,6 +4,7 @@ import linehaul_constants as C
 from linehaul_evaluation import comparison_table, evaluate_solution
 from linehaul_heuristics import all_direct_construction, greedy_construction, hub_and_spoke_construction
 from linehaul_network import build_instance
+from linehaul_pdf_export import generate_linehaul_plan_pdf
 from linehaul_presets import (
     apply_preset,
     bounds,
@@ -15,9 +16,9 @@ from linehaul_presets import (
 from linehaul_reference_solver import solve_exact
 from linehaul_scenario import generate_demand, generate_positions, pairwise_distances
 from linehaul_ui_panel import render_linehaul_panel
-from linehaul_visualization import build_cost_breakdown_chart
+from linehaul_visualization import build_cost_breakdown_chart, build_linehaul_map
 
-st.set_page_config(page_title="Hauptlauf-Netzwerkdesign", page_icon="🚛", layout="wide")
+st.set_page_config(page_title="Hauptlauf-Netzwerkdesign – Sebastian Hanisch", layout="wide")
 
 
 @st.cache_data(show_spinner=False)
@@ -64,31 +65,42 @@ def _compute_all(
     return instance, results, exact_result
 
 
+st.title("🚛 Hauptlauf-Netzwerkdesign")
+st.markdown(
+    """
+Welche Depot-Paare bekommen eine feste, tägliche **Hauptlauf**-Linie - und welche Sendungen
+werden stattdessen über ein Zwischen-Depot umgeschlagen, um sich eine ohnehin fahrende Linie
+zu teilen? Ein Fixed-Charge-Netzwerkdesign-Problem aus der Straßenlogistik (Vorlauf →
+**Hauptlauf** → Nachlauf). Wie das Modell und die vier Verfahren im Detail funktionieren,
+steht im Expander "Wie funktioniert diese Demo?" weiter unten, die formale Herleitung im
+Expander "📐 Mathematische Formulierung".
+"""
+)
+
+st.caption("🎯 Schnellstart – ein Beispielszenario laden:")
+PRESET_HELP = {
+    "Normalfall": "Ausgewogene Fixkosten und Umschlagkosten - Greedy bündelt spürbar gegenüber Direktversand.",
+    "Geringe Fixkosten (Hub schadet)": "Niedrige Linienfixkosten - ein erzwungener Umweg über einen einzigen "
+    "Hub kostet hier mehr, als er an Bündelung spart.",
+    "Hohe Fixkosten (starke Bündelung)": "Hohe Linienfixkosten - Bündelung über Hubs lohnt sich besonders stark.",
+    "Teurer Umschlag": "Hohe Umschlagkosten je Einheit - Hub-and-Spoke verschlechtert sich deutlich schneller "
+    "als die flexiblere Greedy-Lösung.",
+}
+preset_cols = st.columns(len(C.PRESETS))
+for i, name in enumerate(C.PRESETS.keys()):
+    with preset_cols[i]:
+        st.button(name, use_container_width=True, on_click=apply_preset, args=(name,), help=PRESET_HELP[name])
+
+st.caption(
+    "🔗 Die Adresszeile oben spiegelt Ihre aktuelle Konfiguration wider – einfach kopieren, "
+    "um ein Szenario zu teilen."
+)
+
 load_permalink_settings()
 init_session_state_defaults()
 
-st.title("🚛 Hauptlauf-Netzwerkdesign")
-st.caption(
-    "Welche Depot-Paare bekommen eine feste, tägliche Hauptlauf-Linie - und welche Sendungen "
-    "werden stattdessen über ein Zwischen-Depot umgeschlagen? Ein Fixed-Charge-Netzwerkdesign-"
-    "Problem aus der Straßenlogistik (Vorlauf → **Hauptlauf** → Nachlauf)."
-)
-
 with st.sidebar:
-    st.header("Beispielszenarien")
-    preset_cols = st.columns(2)
-    for i, name in enumerate(C.PRESETS.keys()):
-        with preset_cols[i % 2]:
-            st.button(name, use_container_width=True, on_click=apply_preset, args=(name,))
-
-    st.button(
-        "🎲 Neues Zufallsnetzwerk",
-        use_container_width=True,
-        on_click=randomize_seed,
-        help="Würfelt einen neuen Zufalls-Seed für Depotpositionen und Nachfrage.",
-    )
-
-    st.header("Netzwerk")
+    st.header("⚙️ Einstellungen")
     n_depots = st.slider("Anzahl Depots", *bounds("n_depots_slider"), key="n_depots_slider")
     demand_density = st.slider(
         "Nachfragedichte (Anteil Depot-Paare mit Sendungen)",
@@ -100,7 +112,7 @@ with st.sidebar:
     )
     seed = st.number_input("Zufalls-Seed", *bounds("seed_input"), key="seed_input", step=1)
 
-    st.header("Kosten & Kapazität")
+    st.markdown("**Kosten & Kapazität**")
     fixed_cost_base = st.slider(
         "Fixkosten je Linie, Basis (€)", *bounds("fixed_cost_base_slider"), key="fixed_cost_base_slider"
     )
@@ -119,7 +131,7 @@ with st.sidebar:
         "Umschlagkosten (€/Einheit)", *bounds("transshipment_cost_slider"), key="transshipment_cost_slider"
     )
 
-    st.header("Referenz")
+    st.markdown("**Referenz**")
     run_exact = st.checkbox(
         "Exakte Lösung berechnen (OR-Tools)",
         value=True,
@@ -127,6 +139,13 @@ with st.sidebar:
         "für die Heuristiken. Auf 4s begrenzt (bei vielen Depots/hoher Nachfragedichte "
         "manchmal nur die beste gefundene, nicht bewiesen optimale Lösung - wird dann so "
         "gekennzeichnet).",
+    )
+
+    st.button(
+        "🎲 Neues Zufallsnetzwerk",
+        use_container_width=True,
+        on_click=randomize_seed,
+        help="Würfelt einen neuen Zufalls-Seed für Depotpositionen und Nachfrage.",
     )
 
 sync_query_params(
@@ -164,7 +183,7 @@ baseline = max(results, key=lambda r: r["total_cost"])
 cost_saved = baseline["total_cost"] - best["total_cost"]
 pct_saved = (cost_saved / baseline["total_cost"] * 100) if baseline["total_cost"] > 0 else 0.0
 
-st.header("🎯 Ihr kostenoptimiertes Hauptlauf-Netzwerk")
+st.markdown("## 🎯 Ihr kostenoptimiertes Hauptlauf-Netzwerk")
 st.caption(f"Methode: **{best['label']}** - wird bei jedem Lauf neu anhand der Gesamtkosten bestimmt.")
 
 m1, m2, m3, m4 = st.columns(4)
@@ -225,9 +244,73 @@ if exact_result is not None:
                 f"unter der besten Heuristik, aber ohne Optimalitätsgarantie."
             )
 
-render_linehaul_panel("primary", best["label"], instance, best)
+fig_best = build_linehaul_map(instance, best, title=best["label"])
+st.plotly_chart(fig_best, use_container_width=True, key="primary_map")
 
-with st.expander("📊 Vollständiger Methodenvergleich"):
+pdf_bytes_best = generate_linehaul_plan_pdf(best["label"], instance, best)
+st.download_button(
+    "📄 Netzwerkplan als PDF herunterladen",
+    data=pdf_bytes_best,
+    file_name="hauptlauf_plan_optimiert.pdf",
+    mime="application/pdf",
+    key="primary_pdf_download",
+)
+
+st.caption(
+    "Ermittelt mit der besten von drei eigenen Optimierungsmethoden für dieses Szenario. "
+    "Details zu allen Methoden und dem Vergleich mit Google OR-Tools unten."
+)
+
+st.markdown("---")
+
+st.subheader("📐 Wann lohnt sich Bündelung über einen Hub?")
+st.markdown(
+    """
+Kernfrage dieser Demo: Hauptlauf-Linien haben hohe **Fixkosten** (LKW-Bereitstellung,
+unabhängig von der Auslastung) und geringe **variable Kosten**. Bündelung mehrerer Sendungen
+über einen gemeinsamen Hub spart Fixkosten, kostet aber **Umschlaggebühren**. Ob sich das
+lohnt, hängt vom Verhältnis dieser beiden Kostenarten ab - hier live für Ihre aktuelle
+Konfiguration geprüft, nicht nur behauptet.
+"""
+)
+
+direct_result = next(r for r in results if r["label"] == "Alles direkt")
+hub_result = next(r for r in results if r["label"] == "Hub-and-Spoke")
+hub_vs_direct = hub_result["total_cost"] - direct_result["total_cost"]
+
+core_col1, core_col2, core_col3 = st.columns(3)
+core_col1.metric("Alles direkt", f"{direct_result['total_cost']:.0f} €")
+core_col2.metric(
+    "Hub-and-Spoke",
+    f"{hub_result['total_cost']:.0f} €",
+    delta=f"{hub_vs_direct:.0f} € ggü. Alles direkt",
+    delta_color="inverse",
+)
+core_col3.metric(
+    "Aktive Linien (Hub-and-Spoke)",
+    hub_result["n_lines"],
+    delta=f"{hub_result['n_lines'] - direct_result['n_lines']} ggü. Alles direkt",
+    delta_color="off",
+)
+
+if hub_vs_direct < -1:
+    st.success(
+        f"✅ Bei diesen Einstellungen lohnt sich Bündelung über einen einzigen Hub: "
+        f"**{-hub_vs_direct:.0f} €** günstiger als lauter Direktlinien."
+    )
+elif hub_vs_direct > 1:
+    st.warning(
+        f"⚠️ Bei diesen Einstellungen SCHADET die starre Bündelung über einen einzigen Hub: "
+        f"**{hub_vs_direct:.0f} €** teurer als lauter Direktlinien - der erzwungene Umweg über "
+        f"einen einzigen Hub kostet mehr, als er an Fixkosten spart. Genau deshalb sucht Greedy "
+        f"gezielt nach der besseren Mischung aus Direkt- und Hub-Routen (siehe oben)."
+    )
+else:
+    st.info("Bei diesen Einstellungen sind Hub-and-Spoke und Alles direkt fast gleich teuer - ein echter Kipppunkt.")
+
+st.markdown("---")
+
+with st.expander("🔧 Wie wir das erreichen – vollständiger Methodenvergleich"):
     all_results = list(results)
     if exact_result is not None:
         all_results.append(exact_result["eval"])
@@ -241,7 +324,7 @@ with st.expander("📊 Vollständiger Methodenvergleich"):
         with tab:
             render_linehaul_panel(prefix, r["label"], instance, r)
 
-with st.expander("ℹ️ Wie funktioniert diese Demo?"):
+with st.expander("Wie funktioniert diese Demo?"):
     st.markdown(
         """
 Mehrere Depots versenden täglich Sendungen aneinander. Für jedes Depot-Paar mit Nachfrage
@@ -255,14 +338,15 @@ eine Linie mit anderen Sendungen teilen, die ohnehin dorthin fahren. Das spart F
 kostet aber **Umschlaggebühren** je Einheit. Genau dieser Zielkonflikt ist die Kernfrage der
 Demo: **wann lohnt sich Bündelung über einen Hub, und wann ist der direkte Weg günstiger?**
 
-Drei selbst gebaute Verfahren stehen zur Auswahl (im Tab "Vollständiger Methodenvergleich"
-alle nebeneinander), zusätzlich eine **exakte Referenzlösung** (Google OR-Tools, gemischt-
+Drei selbst gebaute Verfahren stehen zur Auswahl (im Expander "Wie wir das erreichen" alle
+nebeneinander), zusätzlich eine **exakte Referenzlösung** (Google OR-Tools, gemischt-
 ganzzahliges Programm):
 
 - **Alles direkt**: jede Sendung fährt direkt - keine Bündelung, Referenzpunkt.
 - **Hub-and-Spoke**: alle Sendungen laufen über einen einzigen, best gewählten Hub.
-- **Greedy-Verbesserung**: sucht lokal die besten Einzeländerungen, gestartet von beiden
-  obigen Lösungen - nachweislich nie schlechter als die bessere der beiden Startlösungen.
+- **Greedy-Verbesserung**: sucht lokal die besten Einzeländerungen, gestartet von mehreren
+  Startlösungen und einem abschließenden paarweisen Politur-Schritt - nachweislich nie
+  schlechter als die beste Startlösung.
 
 Die Primäransicht zeigt **dynamisch** die bei den aktuellen Einstellungen tatsächlich
 günstigste Heuristik - kein Verfahren wird pauschal bevorzugt.
@@ -310,3 +394,11 @@ manchmal nur die beste innerhalb des Zeitlimits gefundene Lösung (dann klar als
 "Zeitlimit erreicht" gekennzeichnet, siehe README für die Laufzeitmessung).
         """
     )
+
+st.markdown("---")
+
+st.caption(
+    "Diese Demo ist Teil des Portfolios von [Sebastian Hanisch](https://sebastianhanisch.net) – "
+    "Operations Research und Machine Learning. Interesse an einer maßgeschneiderten Lösung für "
+    "Ihr Unternehmen? [Kontakt aufnehmen](https://sebastianhanisch.net/kontakt.html)"
+)

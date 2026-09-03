@@ -18,7 +18,7 @@ def render_linehaul_panel(prefix, label, instance, result):
 
     pdf_bytes = generate_linehaul_plan_pdf(label, instance, result)
     st.download_button(
-        "📄 Netzwerkplan als PDF",
+        "📄 Netzwerkplan als PDF herunterladen",
         data=pdf_bytes,
         file_name=f"hauptlauf_plan_{prefix}.pdf",
         mime="application/pdf",
