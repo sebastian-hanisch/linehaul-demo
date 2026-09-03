@@ -1,5 +1,7 @@
 # Hauptlauf-Netzwerkdesign – Streamlit-Demo
 
+**[→ Demo live ausprobieren](https://sebastianhanisch-linehaul-demo.streamlit.app/)**
+
 Interaktive Demo zum Hauptlauf in der Straßenlogistik (Vorlauf → **Hauptlauf** → Nachlauf):
 gegeben mehrere Depots mit täglicher Sendungsnachfrage zwischen Depot-Paaren – welche
 Depot-Paare bekommen eine feste, tägliche Hauptlauf-Linie (LKW nach Fahrplan), und welche
