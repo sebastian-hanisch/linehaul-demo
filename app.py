@@ -21,23 +21,14 @@ from linehaul_visualization import build_cost_breakdown_chart, build_linehaul_ma
 st.set_page_config(page_title="Hauptlauf-Netzwerkdesign – Sebastian Hanisch", layout="wide")
 
 
-@st.cache_data(show_spinner=False)
-def _compute_all(
-    n_depots,
-    demand_density,
-    demand_scale,
-    fixed_cost_base,
-    fixed_cost_per_km,
-    variable_cost_per_km,
-    truck_capacity,
-    transshipment_cost_per_unit,
-    seed,
-    run_exact,
+def _build_instance(
+    n_depots, demand_density, demand_scale, fixed_cost_base, fixed_cost_per_km,
+    variable_cost_per_km, truck_capacity, transshipment_cost_per_unit, seed,
 ):
     positions = generate_positions(n_depots, seed)
     demand = generate_demand(n_depots, seed, demand_density, demand_scale)
     distances = pairwise_distances(positions)
-    instance = build_instance(
+    return build_instance(
         positions,
         demand,
         distances,
@@ -48,21 +39,43 @@ def _compute_all(
         transshipment_cost_per_unit,
     )
 
+
+@st.cache_data(show_spinner=False)
+def _compute_heuristics(
+    n_depots, demand_density, demand_scale, fixed_cost_base, fixed_cost_per_km,
+    variable_cost_per_km, truck_capacity, transshipment_cost_per_unit, seed,
+):
+    instance = _build_instance(
+        n_depots, demand_density, demand_scale, fixed_cost_base, fixed_cost_per_km,
+        variable_cost_per_km, truck_capacity, transshipment_cost_per_unit, seed,
+    )
     results = [
         evaluate_solution(instance, all_direct_construction(instance), label="Alles direkt"),
         evaluate_solution(instance, hub_and_spoke_construction(instance), label="Hub-and-Spoke"),
         evaluate_solution(instance, greedy_construction(instance), label="Greedy-Verbesserung"),
     ]
+    return instance, results
 
-    exact_result = None
-    if run_exact and instance.commodities:
-        solve = solve_exact(instance, time_limit_seconds=C.EXACT_SOLVE_TIME_LIMIT_SECONDS)
-        if solve.feasible:
-            exact_label = "Exakt (OR-Tools)" if solve.optimal else "Exakt (OR-Tools, Zeitlimit)"
-            exact_eval = evaluate_solution(instance, solve.route_choice, label=exact_label)
-            exact_result = {"eval": exact_eval, "optimal": solve.optimal, "wall_time_ms": solve.wall_time_ms}
 
-    return instance, results, exact_result
+@st.cache_data(show_spinner=False)
+def _compute_exact(
+    n_depots, demand_density, demand_scale, fixed_cost_base, fixed_cost_per_km,
+    variable_cost_per_km, truck_capacity, transshipment_cost_per_unit, seed,
+):
+    """Getrennt von `_compute_heuristics`, damit der exakte Löser NICHT automatisch bei jeder
+    Regler-Änderung mitläuft - läuft nur, wenn der Nutzer explizit den Button klickt (siehe
+    unten). Vorausgesetzt wird, dass die aktuelle Instanz Sendungen hat (`instance.commodities`)
+    - der Aufrufer prüft das bereits vor jedem Aufruf, hier nicht wiederholt."""
+    instance = _build_instance(
+        n_depots, demand_density, demand_scale, fixed_cost_base, fixed_cost_per_km,
+        variable_cost_per_km, truck_capacity, transshipment_cost_per_unit, seed,
+    )
+    solve = solve_exact(instance, time_limit_seconds=C.EXACT_SOLVE_TIME_LIMIT_SECONDS)
+    if not solve.feasible:
+        return None
+    exact_label = "Exakt (OR-Tools)" if solve.optimal else "Exakt (OR-Tools, Zeitlimit)"
+    exact_eval = evaluate_solution(instance, solve.route_choice, label=exact_label)
+    return {"eval": exact_eval, "optimal": solve.optimal, "wall_time_ms": solve.wall_time_ms}
 
 
 st.title("🚛 Hauptlauf-Netzwerkdesign")
@@ -132,13 +145,14 @@ with st.sidebar:
     )
 
     st.markdown("**Referenz**")
-    run_exact = st.checkbox(
-        "Exakte Lösung berechnen (OR-Tools)",
-        value=True,
+    run_exact_clicked = st.button(
+        "🎯 Exakte Lösung berechnen (OR-Tools)",
+        use_container_width=True,
         help="Löst das vollständige gemischt-ganzzahlige Modell exakt - dient als Cross-Check "
-        "für die Heuristiken. Auf 4s begrenzt (bei vielen Depots/hoher Nachfragedichte "
-        "manchmal nur die beste gefundene, nicht bewiesen optimale Lösung - wird dann so "
-        "gekennzeichnet).",
+        f"für die Heuristiken. Auf {C.EXACT_SOLVE_TIME_LIMIT_SECONDS}s begrenzt (bei vielen "
+        "Depots/hoher Nachfragedichte manchmal nur die beste gefundene, nicht bewiesen "
+        "optimale Lösung - wird dann so gekennzeichnet). Läuft bewusst nur auf Klick, nicht "
+        "automatisch bei jeder Änderung - kann bei großen Szenarien mehrere Sekunden dauern.",
     )
 
     st.button(
@@ -160,19 +174,13 @@ sync_query_params(
     seed,
 )
 
+scenario_key = (
+    int(n_depots), demand_density, demand_scale, fixed_cost_base, fixed_cost_per_km,
+    variable_cost_per_km, truck_capacity, transshipment_cost, int(seed),
+)
+
 with st.spinner("Berechne Netzwerk..."):
-    instance, results, exact_result = _compute_all(
-        int(n_depots),
-        demand_density,
-        demand_scale,
-        fixed_cost_base,
-        fixed_cost_per_km,
-        variable_cost_per_km,
-        truck_capacity,
-        transshipment_cost,
-        int(seed),
-        run_exact,
-    )
+    instance, results = _compute_heuristics(*scenario_key)
 
 if not instance.commodities:
     st.warning("Bei dieser Nachfragedichte gibt es keine Sendungen. Regler erhöhen oder neues Netzwerk würfeln.")
@@ -182,6 +190,20 @@ best = min(results, key=lambda r: r["total_cost"])
 baseline = max(results, key=lambda r: r["total_cost"])
 cost_saved = baseline["total_cost"] - best["total_cost"]
 pct_saved = (cost_saved / baseline["total_cost"] * 100) if baseline["total_cost"] > 0 else 0.0
+
+if run_exact_clicked:
+    st.session_state["exact_scenario_key"] = scenario_key
+
+exact_result = None
+exact_stale = False
+if st.session_state.get("exact_scenario_key") == scenario_key:
+    with st.spinner(f"Berechne exakte Lösung (OR-Tools, bis zu {C.EXACT_SOLVE_TIME_LIMIT_SECONDS}s)..."):
+        exact_result = _compute_exact(*scenario_key)
+elif "exact_scenario_key" in st.session_state:
+    # Einstellungen haben sich seit der letzten exakten Berechnung geändert - die alte Lösung
+    # gehört zu einem anderen Szenario und wird bewusst NICHT mehr angezeigt, statt irreführend
+    # stehen zu bleiben.
+    exact_stale = True
 
 st.markdown("## 🎯 Ihr kostenoptimiertes Hauptlauf-Netzwerk")
 st.caption(f"Methode: **{best['label']}** - wird bei jedem Lauf neu anhand der Gesamtkosten bestimmt.")
@@ -243,6 +265,17 @@ if exact_result is not None:
                 f"Lösung liegt bei {exact_eval['total_cost']:.0f} € - {gap:.0f} € ({gap_pct:.1f}%) "
                 f"unter der besten Heuristik, aber ohne Optimalitätsgarantie."
             )
+elif exact_stale:
+    st.info(
+        "ℹ️ Die zuletzt berechnete exakte Lösung bezog sich auf ein anderes Szenario - "
+        "Einstellungen links geändert? Erneut auf '🎯 Exakte Lösung berechnen' klicken, um sie "
+        "für die aktuelle Konfiguration zu erhalten."
+    )
+else:
+    st.caption(
+        "💡 Exaktes Optimum als Cross-Check sehen? Button '🎯 Exakte Lösung berechnen' in der "
+        "Seitenleiste - läuft nur auf Klick, da es bei großen Szenarien einige Sekunden dauern kann."
+    )
 
 fig_best = build_linehaul_map(instance, best, title=best["label"])
 st.plotly_chart(fig_best, use_container_width=True, key="primary_map")

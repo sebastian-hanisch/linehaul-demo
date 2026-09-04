@@ -239,6 +239,22 @@ gegenseitige Begrenzung der Regler (z. B. Nachfragedichte bei 9 Depots kappen) -
 Komplexität in die ohnehin schon unabhängigen `SETTING_SPECS`-Regler tragen, für einen
 Nutzen, den die einfache feste Zeitschranke bereits abdeckt.
 
+### Fund: der exakte Löser lief automatisch mit, auch bei jeder Regler-Änderung
+
+Auch mit dem auf 4s reduzierten Zeitlimit (siehe oben) lief `solve_exact` bislang bei JEDER
+Regler-Änderung automatisch mit (Checkbox "Exakte Lösung berechnen", standardmäßig aktiviert) -
+in der oben dokumentierten harten Ecke (9 Depots, hohe Nachfragedichte) kostete das weiterhin
+bis zu 4s pro Interaktion, obwohl die drei eigenen Heuristiken zusammen unter einer Millisekunde
+brauchen. Portfolio-weiter Fund (zuerst im quaycrane-demo behoben, siehe dessen README): der
+exakte Löser dient nur als Cross-Check, nicht für das primäre Ergebnis, automatisches Mitlaufen
+ist unnötig teuer.
+
+Fix in [app.py](app.py): `_compute_all` in `_compute_heuristics` (läuft immer, schnell) und
+`_compute_exact` (eigenständig `@st.cache_data`, läuft nur auf Klick) aufgeteilt. Ein Button
+"🎯 Exakte Lösung berechnen" ersetzt die Checkbox; das Ergebnis ist über `st.session_state` an
+ein konkretes Szenario gebunden - ändert sich die Konfiguration danach, wird die alte exakte
+Lösung nicht mehr angezeigt, sondern ein Hinweis, erneut zu klicken.
+
 ## Dateistruktur
 
 | Datei | Inhalt |
