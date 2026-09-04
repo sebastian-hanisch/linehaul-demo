@@ -39,7 +39,7 @@ def generate_linehaul_plan_pdf(label, instance, result):
     pdf.set_font("Helvetica", "B", 12)
     pdf.cell(0, 8, "Aktive Hauptlauf-Linien", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
     pdf.set_font("Helvetica", "B", 9)
-    headers = ["Linie", "LKW/Tag", "Fluss hin", "Fluss zurueck", "Distanz (km)"]
+    headers = ["Linie", "LKW/Tag", "Fluss hin", "Fluss zurück", "Distanz (km)"]
     widths = [40, 25, 30, 30, 30]
     pdf.set_fill_color(230, 230, 230)
     for header, width in zip(headers, widths):
