@@ -347,7 +347,7 @@ with st.expander("🔧 Wie wir das erreichen – vollständiger Methodenvergleic
     with tab_compare:
         all_results = list(results) + ([exact_eval] if exact_eval is not None else [])
         st.dataframe(comparison_table(all_results), use_container_width=True, hide_index=True)
-        st.plotly_chart(build_cost_breakdown_chart(all_results), use_container_width=True)
+        st.plotly_chart(build_cost_breakdown_chart(all_results), use_container_width=True, key="cost_breakdown")
 
 with st.expander("Wie funktioniert diese Demo?"):
     st.markdown(
