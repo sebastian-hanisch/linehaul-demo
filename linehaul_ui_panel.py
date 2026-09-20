@@ -14,7 +14,7 @@ def render_linehaul_panel(prefix, label, instance, result):
     m4.metric("Sendungen mit Umschlag", f"{result['n_shipments_transshipped']}/{result['n_shipments_total']}")
 
     fig = build_linehaul_map(instance, result, title=label)
-    st.plotly_chart(fig, use_container_width=True, key=f"{prefix}_map")
+    st.plotly_chart(fig, width="stretch", key=f"{prefix}_map")
 
     pdf_bytes = generate_linehaul_plan_pdf(label, instance, result)
     st.download_button(
