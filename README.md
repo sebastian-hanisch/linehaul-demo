@@ -65,7 +65,7 @@ wechselt die Route) – von einem lokal bereits guten Startpunkt aus bleibt sie 
 einem lokalen Optimum hängen, das ein anderer, zunächst schlechterer Startpunkt gar nicht
 erst erreicht. Konkretes Beispiel (7 Depots, Seed 2): Verbesserungssuche nur vom besten
 Einzel-Hub aus landet bei 6.767 €, dieselbe Suche von *allen* Einzel-Hub-Konfigurationen
-aus (das jeweils beste Endergebnis) findet 6.425 € – 5,1 % besser, bei Rechenzeiten im
+aus (das jeweils beste Endergebnis) findet 6.425 € – 5,1 % weniger Kosten als die 6.767 €, bei Rechenzeiten im
 zweistelligen Millisekundenbereich (`test_greedy_benefits_from_exploring_every_hub_as_starting_point`).
 
 **Fix:** `greedy_construction` startet von *allen* Einzel-Hub-Konfigurationen statt nur

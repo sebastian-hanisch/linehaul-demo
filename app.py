@@ -388,7 +388,7 @@ Gegeben Depots $V$, Sendungen (Commodities) $k \\in K$ mit Ursprung $o_k$, Ziel 
 Menge $q_k$, Kandidatenlinien $\\{i,j\\}$ mit Fixkosten $F_{ij}$, variablen Kosten $c_{ij}$
 je Einheit und Kapazität $\\mathrm{cap}$ je LKW, sowie Umschlagkosten $h$ je Einheit.
 
-Vereinfachung (siehe [linehaul_network.py](linehaul_network.py)): jede Sendung nutzt
+Vereinfachung (siehe `linehaul_network.py`): jede Sendung nutzt
 höchstens einen Umschlagpunkt - die Routenwahl ist damit eine **diskrete Auswahl** aus
 Direktroute oder Route über genau einen Hub $m$, statt eines allgemeinen Mehrgüterflusses
 mit beliebig langen Pfaden. Bei Bedarf ließe sich das zu einem allgemeinen Min-Cost-Flow mit
@@ -412,7 +412,7 @@ disziplinieren die Pfadlänge bereits ökonomisch - mehr Umschläge lohnen sich 
 dadurch eingesparten Fixkosten die zusätzlichen Umschlaggebühren übersteigen.
 
 Gelöst mit Google OR-Tools (`pywraplp`, SCIP-Backend) in
-[linehaul_reference_solver.py](linehaul_reference_solver.py), auf 4 Sekunden
+`linehaul_reference_solver.py`, auf 4 Sekunden
 Rechenzeit begrenzt - bei wenigen Depots/geringer Nachfragedichte fast immer
 das bewiesene Optimum, bei vielen Depots UND hoher Nachfragedichte gleichzeitig
 manchmal nur die beste innerhalb des Zeitlimits gefundene Lösung (dann klar als
