@@ -90,6 +90,17 @@ Expander "📐 Mathematische Formulierung".
 """
 )
 
+# erklaerseite:einfach:start (erzeugt von tools/set_demo_explainer.py (Website-Repo) aus tools/content/explainers/hauptlauf-netz-erklaert.json, nicht von Hand ändern)
+with st.expander("💬 In einfachen Worten"):
+    st.markdown(
+        """
+Ein Paketdienst hat mehrere Lager. Zwischen vielen Paaren von Lagern sollen jeden Tag Sendungen fahren. Ein Lkw auf einer festen Linie kostet die Fahrt, egal wie voll er ist. Die Demo fragt: Welche Lagerpaare bekommen eine eigene Linie, und welche Sendungen werden stattdessen in einem anderen Lager umgeladen, damit sie sich eine ohnehin fahrende Linie teilen? Umladen kostet eine Gebühr, und ein Umweg kostet Strecke. Die Demo vergleicht drei Regeln mit dem bestmöglichen Plan: alles direkt, alles über ein einziges Lager und eine Mischung, die Sendung für Sendung verbessert wird. Sie zeigt, wann sich das Teilen einer Linie lohnt und wann nicht. Alle Zahlen stammen aus erfundenen Gebieten.
+
+[Ausführlich und verständlich erklärt, mit Fachteil](https://sebastianhanisch.net/hauptlauf-netz-erklaert.html)
+        """
+    )
+# erklaerseite:einfach:end
+
 st.caption("🎯 Schnellstart – ein Beispielszenario laden:")
 PRESET_HELP = {
     "Normalfall": "Ausgewogene Fixkosten und Umschlagkosten - Greedy bündelt spürbar gegenüber Direktversand.",
@@ -379,6 +390,23 @@ günstigste Heuristik - kein Verfahren wird pauschal bevorzugt.
     )
 
 with st.expander("📐 Mathematische Formulierung"):
+    # erklaerseite:lesehilfe:start (erzeugt von tools/set_demo_explainer.py (Website-Repo) aus tools/content/explainers/hauptlauf-netz-erklaert.json, nicht von Hand ändern)
+    st.markdown(
+        r"""
+**Lesehilfe.** Gegeben sind Depots $V$ mit Entfernungen, Sendungen $k \in K$ von einem Ursprung $o_k$ zu einem Ziel $d_k$ mit Menge $q_k$, Kandidatenlinien mit Fixkosten, Lkw der Kapazität $\mathrm{cap}$ und Umschlagkosten $h$ je Einheit. Gesucht ist für jede Sendung eine Route (direkt oder über genau ein Zwischendepot) und die Zahl der Lkw je Linie, sodass die Gesamtkosten minimal sind.
+
+| Symbol | Bedeutung |
+|---|---|
+| $o_k$, $d_k$, $q_k$ | Ursprung, Ziel und Menge der Sendung $k$ |
+| $F_{ij}$, $c_{ij}$ | Fixkosten je Lkw bzw. Kosten je Einheit auf der Linie zwischen Depot $i$ und Depot $j$ |
+| $\mathrm{cap}$, $h$ | Kapazität eines Lkw bzw. Umschlagkosten je Einheit |
+| $z_{k,r}$ | gleich $1$, wenn Sendung $k$ die Route $r$ nutzt, sonst $0$ |
+| $y_{ij}$ | Zahl der Lkw auf der Linie zwischen Depot $i$ und Depot $j$ |
+
+[Schritt für Schritt erklärt, mit Herleitung und Literatur](https://sebastianhanisch.net/hauptlauf-netz-erklaert.html#fachleute)
+        """
+    )
+    # erklaerseite:lesehilfe:end
     st.markdown(
         """
 **Fixed-Charge (Multicommodity) Network Design Problem**, NP-schwer (Magnanti & Wong, 1984;
